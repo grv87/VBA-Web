@@ -1054,9 +1054,64 @@ Public Function UrlDecode(Encoded As String, _
             web_Result = web_Result & web_Temp
         Next web_i
 
-        UrlDecode = web_Result
+        UrlDecode = Utf8Decode(web_Result)
     End If
 End Function
+
+Public Function Utf8Decode(Encoded As String) As String
+    Dim web_StringLen As Long
+    web_StringLen = VBA.Len(Encoded)
+
+    If web_StringLen > 0 Then
+        Dim web_i As Long
+        Dim web_Result As String
+        Dim web_Temp As Byte, web_Temp2 As Byte, web_Temp3 As Byte, web_Temp4 As Byte, web_Temp5 As Byte, web_Temp6 As Byte
+
+        For web_i = 1 To web_StringLen
+            web_Temp = VBA.Asc(VBA.Mid$(Encoded, web_i, 1))
+
+            If web_Temp And &H80 Then
+                web_i = web_i + 1
+                web_Temp2 = VBA.Asc(VBA.Mid$(Encoded, web_i, 1))
+                If Not web_Temp And &H20 Then ' 1 Extra Char
+                    web_Result = web_Result & VBA.ChrW$((web_Temp And &H1F) * &H40 + (web_Temp2 And &H3F))
+                ElseIf Not web_Temp And &H10 Then ' 2 Extra Chars then
+                    web_i = web_i + 1
+                    web_Temp3 = VBA.Asc(VBA.Mid$(Encoded, web_i, 1))
+                    web_Result = web_Result & VBA.ChrW$((web_Temp And &HF) * &H1000 + (web_Temp2 And &H3F) * &H40 + (web_Temp3 And &H3F))
+                ElseIf Not web_Temp And &H8 Then ' 3 Extra Chars
+                    web_i = web_i + 1
+                    web_Temp3 = VBA.Asc(VBA.Mid$(Encoded, web_i, 1))
+                    web_i = web_i + 1
+                    web_Temp4 = VBA.Asc(VBA.Mid$(Encoded, web_i, 1))
+                    web_Result = web_Result & VBA.ChrW$((web_Temp And &H7) * &H40000 + (web_Temp2 And &H3F) * &H1000 + (web_Temp3 And &H3F) * &H40 + (web_Temp4 And &H3F))
+                ElseIf Not web_Temp And &H4 Then ' 4 Extra Chars
+                    web_i = web_i + 1
+                    web_Temp3 = VBA.Asc(VBA.Mid$(Encoded, web_i, 1))
+                    web_i = web_i + 1
+                    web_Temp4 = VBA.Asc(VBA.Mid$(Encoded, web_i, 1))
+                    web_i = web_i + 1
+                    web_Temp5 = VBA.Asc(VBA.Mid$(Encoded, web_i, 1))
+                    web_Result = web_Result & VBA.ChrW$((web_Temp And &H3) * &H1000000 + (web_Temp2 And &H3F) * &H40000 + (web_Temp3 And &H3F) * &H1000 + (web_Temp4 And &H3F) * &H40 + (web_Temp5 And &H3F))
+                ElseIf Not web_Temp And &H2 Then ' 5 Extra Chars
+                    web_i = web_i + 1
+                    web_Temp3 = VBA.Asc(VBA.Mid$(Encoded, web_i, 1))
+                    web_i = web_i + 1
+                    web_Temp4 = VBA.Asc(VBA.Mid$(Encoded, web_i, 1))
+                    web_i = web_i + 1
+                    web_Temp5 = VBA.Asc(VBA.Mid$(Encoded, web_i, 1))
+                    web_i = web_i + 1
+                    web_Temp6 = VBA.Asc(VBA.Mid$(Encoded, web_i, 1))
+                    web_Result = web_Result & VBA.ChrW$((web_Temp And &H1) * &H40000000 + (web_Temp2 And &H3F) * &H1000000 + (web_Temp3 And &H3F) * &H40000 + (web_Temp4 And &H3F) * &H1000 + (web_Temp5 And &H3F) * &H40 + (web_Temp6 And &H3F))
+                End If
+            Else ' No Extra C
+                web_Result = web_Result & VBA.ChrW$(web_Temp)
+            End If
+        Next web_i
+
+        Utf8Decode = web_Result
+    End If
+  End Function
 
 ''
 ' Base64-encode text.
@@ -1642,7 +1697,7 @@ Public Function ExecuteInShell(web_Command As String) As ShellResult
             web_Chunk = VBA.Left$(web_Chunk, web_Read)
             ExecuteInShell.Output = ExecuteInShell.Output & web_Chunk
         End If
-        
+
         VBA.DoEvents
     Loop
 
